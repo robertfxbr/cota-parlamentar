@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Instalar o pacote e as dependencias de desenvolvimento
+        run: pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Formatacao
+        run: ruff format --check .
+
+      - name: Testes
+        run: pytest --cov --cov-report=term-missing --cov-fail-under=90
+
+  relatorio:
+    # Roda depois dos testes e so no main: baixa o arquivo da Camara, refaz a
+    # analise e commita o relatorio se ele mudou. E o que garante que o texto
+    # publicado nunca esteja atrasado em relacao ao codigo que o produz.
+    needs: testes
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Instalar
+        run: pip install -e ".[dev]"
+
+      - name: Regenerar o relatorio do ano corrente
+        run: cota relatorio $(date +%Y)
+
+      - name: Commitar se mudou
+        run: |
+          if [ -n "$(git status --porcelain relatorio/)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add relatorio/
+            git commit -m "Relatorio regenerado pelo CI"
+            git push
+          else
+            echo "relatorio sem mudanca"
+          fi

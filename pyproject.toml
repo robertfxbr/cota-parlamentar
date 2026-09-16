@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cota-parlamentar"
+version = "0.1.0"
+description = "Analise reprodutivel da Cota para Exercicio da Atividade Parlamentar da Camara dos Deputados."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Robert Miranda", email = "r.mirandaa@live.com" }]
+keywords = ["dados abertos", "transparencia", "duckdb", "polars", "camara dos deputados"]
+dependencies = ["polars>=1.0", "duckdb>=1.0"]
+
+[project.optional-dependencies]
+rede = ["requests>=2.31"]
+dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.6", "requests>=2.31"]
+
+[project.scripts]
+cota = "cota.cli:main"
+
+[project.urls]
+Repository = "https://github.com/robertfxbr/cota-parlamentar"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["cota"]
+omit = ["*/__main__.py"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
