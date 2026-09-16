@@ -115,6 +115,18 @@ consultas moram em `analise.py`, em SQL legível; o relatório é Markdown gerad
 e a pergunta de concentração por deputado é uma window function que em SQL cabe
 em seis linhas.
 
+**Regenerar o relatório dentro do CI de testes.** Era o desenho da primeira
+versão, e ele quebrou na primeira execução: o job ficou pendurado baixando o
+arquivo da Câmara a partir de um runner nos Estados Unidos. Dois defeitos
+apareceram de uma vez. O `timeout` do `requests` é por leitura e não total, então
+um servidor que entrega bytes devagar reseta o contador e o download nunca
+estoura — corrigido com teto de tempo total explícito. E amarrar o status do
+build à disponibilidade de um servidor de terceiro deixaria o badge vermelho toda
+vez que o site da Câmara caísse, o que não diz nada sobre a qualidade do código.
+A regeneração virou um fluxo separado, mensal e acionável à mão, porque a Câmara
+atualiza o arquivo uma vez por mês e regenerar a cada push baixaria o mesmo dado
+dezenas de vezes sem motivo.
+
 **Recortar o arquivo real para usar como fixture de teste.** Traria nome de
 deputado, CNPJ de fornecedor e CPF para dentro do repositório — exatamente o que
 o projeto se propõe a não publicar. As seis linhas de teste são construídas à

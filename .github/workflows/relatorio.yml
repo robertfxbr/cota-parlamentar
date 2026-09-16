@@ -1,0 +1,55 @@
+name: Relatorio
+
+# Separado do CI de proposito. Este fluxo depende de um servidor de terceiro
+# estar no ar: se ele rodasse junto com os testes, o badge do repositorio
+# ficaria vermelho toda vez que o site da Camara caisse, o que nao diz nada
+# sobre a qualidade do codigo. Ver "Decisoes rejeitadas" no README.
+on:
+  schedule:
+    # dia 5 de cada mes, 06:00 UTC. A Camara atualiza o arquivo mensalmente,
+    # entao regenerar a cada push seria baixar o mesmo dado dezenas de vezes.
+    - cron: "0 6 5 * *"
+  workflow_dispatch:
+    inputs:
+      ano:
+        description: "Ano a regenerar (padrao: ano corrente)"
+        required: false
+
+jobs:
+  regenerar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Instalar
+        run: pip install -e ".[rede,dev]"
+
+      - name: Regenerar o relatorio
+        env:
+          ANO_PEDIDO: ${{ inputs.ano }}
+        run: |
+          ano="${ANO_PEDIDO:-$(date +%Y)}"
+          echo "regenerando o relatorio de $ano"
+          cota relatorio "$ano"
+
+
+      - name: Commitar se mudou
+        run: |
+          if [ -n "$(git status --porcelain relatorio/)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add relatorio/
+            git commit -m "Relatorio regenerado em $(date +%Y-%m-%d)"
+            git push
+          else
+            echo "relatorio sem mudanca"
+          fi

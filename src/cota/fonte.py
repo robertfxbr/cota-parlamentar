@@ -44,20 +44,49 @@ def baixar(ano: int, diretorio: str | Path = "dados", baixador: Callable | None 
     return destino
 
 
+# (conexao, leitura). O timeout do requests e por leitura, nao total: um
+# servidor que entrega os bytes devagar reseta o contador a cada pedaco e o
+# download fica pendurado para sempre. Por isso ha tambem LIMITE_TOTAL.
+TIMEOUT = (10, 30)
+LIMITE_TOTAL = 120.0
+
+
 def _baixar_http(url: str) -> bytes:  # pragma: no cover - exige rede
+    """Baixa o arquivo, com teto de tempo total e erro tipado.
+
+    Qualquer falha de rede vira FonteError: sem isso, uma queda de conexao sobe
+    como traceback cru e o programa sai sem dizer o que aconteceu.
+    """
+    import time
+
     try:
         import requests
     except ImportError as exc:
         raise FonteError("requests nao instalado. Use: pip install -e '.[rede]'") from exc
 
-    resposta = requests.get(
-        url,
-        headers={"User-Agent": "cota-parlamentar/0.1 (+https://github.com/robertfxbr)"},
-        timeout=180,
-    )
-    if resposta.status_code != 200:
-        raise FonteError(f"{url} devolveu {resposta.status_code}")
-    return resposta.content
+    inicio = time.monotonic()
+    try:
+        resposta = requests.get(
+            url,
+            headers={"User-Agent": "cota-parlamentar/0.1 (+https://github.com/robertfxbr)"},
+            timeout=TIMEOUT,
+            stream=True,
+        )
+        if resposta.status_code != 200:
+            raise FonteError(f"{url} devolveu {resposta.status_code}")
+
+        pedacos = []
+        for pedaco in resposta.iter_content(chunk_size=65_536):
+            pedacos.append(pedaco)
+            if time.monotonic() - inicio > LIMITE_TOTAL:
+                raise FonteError(
+                    f"{url} passou de {LIMITE_TOTAL:g}s de download; servidor lento ou instavel"
+                )
+        return b"".join(pedacos)
+    except FonteError:
+        raise
+    except Exception as exc:
+        raise FonteError(f"falha de rede ao buscar {url}: {type(exc).__name__}: {exc}") from exc
 
 
 def ler_registros(caminho: str | Path) -> Iterator[Registro]:
