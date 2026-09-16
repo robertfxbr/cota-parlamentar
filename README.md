@@ -88,10 +88,12 @@ inteiro. Há teste garantindo que nada disso sobrevive até o relatório.
 **O valor somado é o líquido, não o do documento.** A diferença entre os dois é
 a glosa. Somar `vlrDocumento` superestima o gasto em toda linha glosada.
 
-**O relatório é saída, nunca fonte.** O CI regenera `relatorio/` a cada push no
-`main` e commita se mudou, então o texto publicado não tem como divergir do
-código que o produziu. É a resposta ao defeito clássico do portfólio de dados: o
-notebook com resultado colado que ninguém consegue reproduzir.
+**O relatório é saída, nunca fonte.** Um fluxo mensal do GitHub Actions
+regenera `relatorio/` a partir do arquivo oficial e commita se mudou — e também
+roda sob demanda, pelo botão. Ninguém edita aquele arquivo à mão, então o texto
+publicado não tem como divergir do código que o produziu. É a resposta ao defeito
+clássico do portfólio de dados: o notebook com resultado colado que ninguém
+consegue reproduzir.
 
 ## Decisões rejeitadas
 
@@ -144,7 +146,7 @@ src/cota/
   relatorio.py  geração do Markdown
   cli.py        preparar, relatorio, consultas
 tests/          70 testes, 100% de cobertura, sem rede
-relatorio/      saída gerada pelo CI — não editar à mão
+relatorio/      saída gerada pelo fluxo mensal — não editar à mão
 ```
 
 ## Desenvolvimento
@@ -155,7 +157,8 @@ ruff check . && ruff format --check .
 ```
 
 O CI roda lint, formatação e a suíte com exigência de 90% de cobertura, em
-Python 3.11, 3.12 e 3.13, e regenera o relatório no `main`.
+Python 3.11, 3.12 e 3.13 — tudo sem rede. A regeneração do relatório é um fluxo
+separado, mensal, que pode ser disparado à mão pela aba Actions.
 
 ## Fonte e licença
 
